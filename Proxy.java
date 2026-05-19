@@ -15,15 +15,15 @@ public class Proxy {
         ServerSocket serverSocket = new ServerSocket(55545);
         Socket clientSocket = serverSocket.accept();
 
-        Socket smtpClient = new Socket("localhost", 1025); //imma use 1025 coz 25 is in use
+        Socket smtpClient = new Socket("localhost", 25);
 
         //this one communicates with the client
         PrintWriter clientOut = new PrintWriter(clientSocket.getOutputStream(), true);
         BufferedReader clientIn = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-        
+
         //this one communicates with the server
-        PrintWriter smtpOut = new PrintWriter(clientSocket.getOutputStream(), true);
-        BufferedReader smtpIn = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+        PrintWriter smtpOut = new PrintWriter(smtpClient.getOutputStream(), true);
+        BufferedReader smtpIn = new BufferedReader(new InputStreamReader(smtpClient.getInputStream()));
         
         System.out.println("Starting");
 
@@ -33,9 +33,8 @@ public class Proxy {
         String line;
         while ((line =clientIn.readLine()) != null) {
             clientOut.println("PROXY IS ACTIVE");
-
+            
             break;
-
         }
             // Loop while the client wants to continue (if the client does not say quit)
             // Receive client input
