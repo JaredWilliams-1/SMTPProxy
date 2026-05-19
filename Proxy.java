@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
+import java.util.Base64;
 
 public class Proxy {
     Proxy(){
@@ -64,8 +65,21 @@ public class Proxy {
     }
 
     private void handleDataSection(BufferedReader clientIn, PrintWriter clientOut, BufferedReader smtpIn, PrintWriter smtpOut) throws IOException {
+        StringBuilder headers = new StringBuilder();
         StringBuilder emailBody = new StringBuilder();
         String line;
+        boolean isBase64 = false;
+
+        while ((line = clientIn.readLine()) != null) {
+            if (line.isEmpty()) {
+                headers.append(line).append("\n");
+                break;
+            }
+            headers.append(line).append("\n");
+            if (line.toLowerCase().contains("content-transfer-encoding: base64")) {
+                isBase64 = true;
+            }
+        }
 
         while ((line = clientIn.readLine()) != null) {
             if (line.equals(".")) {
@@ -74,17 +88,20 @@ public class Proxy {
             emailBody.append(line).append("\n");
         }
 
-        String fullEmail = emailBody.toString();
+        String headersStr = headers.toString();
+        String bodyStr = emailBody.toString();
 
-        if (containsIlluminati(fullEmail)) {
+        String decodedBody = isBase64 ? decodeBase64(bodyStr) : bodyStr;
+
+        if (containsIlluminati(decodedBody)) {
+            smtpOut.print(headersStr);
             smtpOut.println("Hello world");
             smtpOut.println(".");
         } else {
-            String modifiedEmail = replaceWords(fullEmail);
-            String[] lines = modifiedEmail.split("\n");
-            for (String l : lines) {
-                smtpOut.println(l);
-            }
+            String modifiedBody = replaceWords(decodedBody);
+            smtpOut.print(headersStr);
+            String finalBody = isBase64 ? encodeBase64(modifiedBody) : modifiedBody;
+            smtpOut.print(finalBody);
             smtpOut.println("Please do not take anything in this email seriously!");
             smtpOut.println(".");
         }
@@ -93,7 +110,33 @@ public class Proxy {
         clientOut.println(response);
     }
 
+    private String decodeBase64(String encoded) {
+        try {
+            byte[] decoded = Base64.getDecoder().decode(encoded.replaceAll("\n", "").replaceAll("\r", ""));
+            return new String(decoded);
+        } catch (IllegalArgumentException e) {
+            return encoded;
+        }
+    }
+
+    private String encodeBase64(String text) {
+        byte[] encoded = Base64.getEncoder().encode(text.getBytes());
+        String result = new String(encoded);
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < result.length(); i += 76) {
+            sb.append(result, i, Math.min(i + 76, result.length()));
+            if (i + 76 < result.length()) {
+                sb.append("\n");
+            }
+        }
+        return sb.toString();
+    }
+
     private String replaceWords(String text) {
+        text = replacePhrase(text, "very good", "plusgood");
+        text = replacePhrase(text, "very fast", "plusfast");
+        text = replacePhrase(text, "very bad", "plusungood");
+
         text = replaceWordBoundary(text, "warm", "uncold");
         text = replaceWordBoundary(text, "bad", "ungood");
         text = replaceWordBoundary(text, "fast", "speedful");
@@ -105,6 +148,10 @@ public class Proxy {
         text = replaceWordBoundary(text, "best", "goodest");
         text = replaceWordBoundary(text, "better", "gooder");
         return text;
+    }
+
+    private String replacePhrase(String text, String oldPhrase, String newPhrase) {
+        return text.replaceAll("(?i)" + oldPhrase, newPhrase);
     }
 
     private String replaceWordBoundary(String text, String oldWord, String newWord) {
