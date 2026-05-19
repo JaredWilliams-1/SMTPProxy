@@ -30,10 +30,11 @@ public class Proxy {
         String serverGreeting = smtpIn.readLine();
         clientOut.println(serverGreeting + "\n");
 
-        while (true){
+        String line;
+        while ((line =clientIn.readLine()) != null) {
             clientOut.println("PROXY IS ACTIVE");
 
-            
+            break;
 
         }
             // Loop while the client wants to continue (if the client does not say quit)
