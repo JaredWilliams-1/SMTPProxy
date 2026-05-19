@@ -22,14 +22,19 @@ public class Proxy {
         BufferedReader clientIn = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
         
         //this one communicates with the server
-        PrintWriter serverOut = new PrintWriter(clientSocket.getOutputStream(), true);
-        BufferedReader serverIn = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+        PrintWriter smtpOut = new PrintWriter(clientSocket.getOutputStream(), true);
+        BufferedReader smtpIn = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
         
         System.out.println("Starting");
 
-        String line;
-        while ((line = clientIn.readLine()) != "quit"){
+        String serverGreeting = smtpIn.readLine();
+        clientOut.println(serverGreeting + "\n");
+
+        while (true){
             clientOut.println("PROXY IS ACTIVE");
+
+            
+
         }
             // Loop while the client wants to continue (if the client does not say quit)
             // Receive client input
@@ -39,8 +44,8 @@ public class Proxy {
             // Perform checks 
         
         
-        serverIn.close();
-        serverOut.close();
+        smtpIn.close();
+        smtpOut.close();
         clientIn.close();
         clientOut.close();
         smtpClient.close();
