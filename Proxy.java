@@ -41,15 +41,13 @@ public class Proxy {
             if (line.equalsIgnoreCase("DATA")) {
                 System.out.println("[PROXY] Detected DATA command, entering special handling");
                 smtpOut.println(line);
-                String response = smtpIn.readLine();
-                System.out.println("[SERVER] " + response);
-                clientOut.println(response);
+                String response = readFullResponse(smtpIn);
+                clientOut.print(response);
                 handleDataSection(clientIn, clientOut, smtpIn, smtpOut);
             } else {
                 smtpOut.println(line);
-                String response = smtpIn.readLine();
-                System.out.println("[SERVER] " + response);
-                clientOut.println(response);
+                String response = readFullResponse(smtpIn);
+                clientOut.print(response);
             }
         }
         System.out.println("[PROXY] Client disconnected");
@@ -71,6 +69,19 @@ public class Proxy {
                 break;
             }
         }
+    }
+
+    private String readFullResponse(BufferedReader reader) throws IOException {
+        StringBuilder response = new StringBuilder();
+        String line = reader.readLine();
+        System.out.println("[SERVER] " + line);
+        response.append(line).append("\n");
+        while (line != null && line.length() >= 4 && line.charAt(3) == '-') {
+            line = reader.readLine();
+            System.out.println("[SERVER] " + line);
+            response.append(line).append("\n");
+        }
+        return response.toString();
     }
 
     private void handleDataSection(BufferedReader clientIn, PrintWriter clientOut, BufferedReader smtpIn, PrintWriter smtpOut) throws IOException {
@@ -125,9 +136,8 @@ public class Proxy {
             smtpOut.println(".");
         }
 
-        String response = smtpIn.readLine();
-        System.out.println("[SERVER] " + response);
-        clientOut.println(response);
+        String response = readFullResponse(smtpIn);
+        clientOut.print(response);
     }
 
     private String decodeBase64(String encoded) {
