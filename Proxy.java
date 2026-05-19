@@ -28,22 +28,22 @@ public class Proxy {
         System.out.println("Starting");
 
         String serverGreeting = smtpIn.readLine();
-        clientOut.println(serverGreeting + "\n");
+        clientOut.println(serverGreeting);
 
         String line;
-        while ((line =clientIn.readLine()) != null) {
-            clientOut.println("PROXY IS ACTIVE");
-            
-            break;
+        while ((line = clientIn.readLine()) != null) {
+            if (line.equalsIgnoreCase("DATA")) {
+                smtpOut.println(line);
+                String response = smtpIn.readLine();
+                clientOut.println(response);
+                handleDataSection(clientIn, clientOut, smtpIn, smtpOut);
+            } else {
+                smtpOut.println(line);
+                String response = smtpIn.readLine();
+                clientOut.println(response);
+            }
         }
-            // Loop while the client wants to continue (if the client does not say quit)
-            // Receive client input
-                // if it is part of the login stuff then login to the server on behalf of the client
-                // otherwise perform replacements
-            
-            // Perform checks 
-        
-        
+
         smtpIn.close();
         smtpOut.close();
         clientIn.close();
@@ -52,4 +52,67 @@ public class Proxy {
         serverSocket.close();
         
     }
+
+    private void relayLinesUntil(BufferedReader input, PrintWriter output, String terminator) throws IOException {
+        String line;
+        while ((line = input.readLine()) != null) {
+            output.println(line);
+            if (line.equals(terminator)) {
+                break;
+            }
+        }
+    }
+
+    private void handleDataSection(BufferedReader clientIn, PrintWriter clientOut, BufferedReader smtpIn, PrintWriter smtpOut) throws IOException {
+        StringBuilder emailBody = new StringBuilder();
+        String line;
+
+        while ((line = clientIn.readLine()) != null) {
+            if (line.equals(".")) {
+                break;
+            }
+            emailBody.append(line).append("\n");
+        }
+
+        String fullEmail = emailBody.toString();
+
+        if (containsIlluminati(fullEmail)) {
+            smtpOut.println("Hello world");
+            smtpOut.println(".");
+        } else {
+            String modifiedEmail = replaceWords(fullEmail);
+            String[] lines = modifiedEmail.split("\n");
+            for (String l : lines) {
+                smtpOut.println(l);
+            }
+            smtpOut.println("Please do not take anything in this email seriously!");
+            smtpOut.println(".");
+        }
+
+        String response = smtpIn.readLine();
+        clientOut.println(response);
+    }
+
+    private String replaceWords(String text) {
+        text = replaceWordBoundary(text, "warm", "uncold");
+        text = replaceWordBoundary(text, "bad", "ungood");
+        text = replaceWordBoundary(text, "fast", "speedful");
+        text = replaceWordBoundary(text, "rapid", "speedful");
+        text = replaceWordBoundary(text, "quick", "speedful");
+        text = replaceWordBoundary(text, "slow", "unspeedful");
+        text = replaceWordBoundary(text, "ran", "runned");
+        text = replaceWordBoundary(text, "stole", "stealed");
+        text = replaceWordBoundary(text, "best", "goodest");
+        text = replaceWordBoundary(text, "better", "gooder");
+        return text;
+    }
+
+    private String replaceWordBoundary(String text, String oldWord, String newWord) {
+        return text.replaceAll("(?i)\\b" + oldWord + "\\b", newWord);
+    }
+
+    private boolean containsIlluminati(String text) {
+        return text.toLowerCase().contains("illuminati");
+    }
+
 }
