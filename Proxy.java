@@ -14,9 +14,12 @@ public class Proxy {
     public void start() throws IOException{
         // Set up the sockets and the input and out put streams
         ServerSocket serverSocket = new ServerSocket(55545);
+        System.out.println("[PROXY] Listening on port 55545...");
         Socket clientSocket = serverSocket.accept();
+        System.out.println("[PROXY] Client connected!");
 
         Socket smtpClient = new Socket("localhost", 25);
+        System.out.println("[PROXY] Connected to SMTP server on port 25");
 
         //this one communicates with the client
         PrintWriter clientOut = new PrintWriter(clientSocket.getOutputStream(), true);
@@ -25,25 +28,31 @@ public class Proxy {
         //this one communicates with the server
         PrintWriter smtpOut = new PrintWriter(smtpClient.getOutputStream(), true);
         BufferedReader smtpIn = new BufferedReader(new InputStreamReader(smtpClient.getInputStream()));
-        
-        System.out.println("Starting");
+
+        System.out.println("[PROXY] Starting");
 
         String serverGreeting = smtpIn.readLine();
+        System.out.println("[SERVER] " + serverGreeting);
         clientOut.println(serverGreeting);
 
         String line;
         while ((line = clientIn.readLine()) != null) {
+            System.out.println("[CLIENT] " + line);
             if (line.equalsIgnoreCase("DATA")) {
+                System.out.println("[PROXY] Detected DATA command, entering special handling");
                 smtpOut.println(line);
                 String response = smtpIn.readLine();
+                System.out.println("[SERVER] " + response);
                 clientOut.println(response);
                 handleDataSection(clientIn, clientOut, smtpIn, smtpOut);
             } else {
                 smtpOut.println(line);
                 String response = smtpIn.readLine();
+                System.out.println("[SERVER] " + response);
                 clientOut.println(response);
             }
         }
+        System.out.println("[PROXY] Client disconnected");
 
         smtpIn.close();
         smtpOut.close();
@@ -65,6 +74,7 @@ public class Proxy {
     }
 
     private void handleDataSection(BufferedReader clientIn, PrintWriter clientOut, BufferedReader smtpIn, PrintWriter smtpOut) throws IOException {
+        System.out.println("[PROXY] Reading email headers...");
         StringBuilder headers = new StringBuilder();
         StringBuilder emailBody = new StringBuilder();
         String line;
@@ -73,16 +83,21 @@ public class Proxy {
         while ((line = clientIn.readLine()) != null) {
             if (line.isEmpty()) {
                 headers.append(line).append("\n");
+                System.out.println("[PROXY] End of headers reached");
                 break;
             }
+            System.out.println("[PROXY] Header: " + line);
             headers.append(line).append("\n");
             if (line.toLowerCase().contains("content-transfer-encoding: base64")) {
                 isBase64 = true;
+                System.out.println("[PROXY] Detected base64 encoding");
             }
         }
 
+        System.out.println("[PROXY] Reading email body...");
         while ((line = clientIn.readLine()) != null) {
             if (line.equals(".")) {
+                System.out.println("[PROXY] End of message reached");
                 break;
             }
             emailBody.append(line).append("\n");
@@ -90,23 +105,28 @@ public class Proxy {
 
         String headersStr = headers.toString();
         String bodyStr = emailBody.toString();
+        System.out.println("[PROXY] Body length: " + bodyStr.length() + " chars");
 
         String decodedBody = isBase64 ? decodeBase64(bodyStr) : bodyStr;
 
         if (containsIlluminati(decodedBody)) {
+            System.out.println("[PROXY] Illuminati detected! Replacing with 'Hello world'");
             smtpOut.print(headersStr);
             smtpOut.println("Hello world");
             smtpOut.println(".");
         } else {
+            System.out.println("[PROXY] Applying word replacements...");
             String modifiedBody = replaceWords(decodedBody);
             smtpOut.print(headersStr);
             String finalBody = isBase64 ? encodeBase64(modifiedBody) : modifiedBody;
             smtpOut.print(finalBody);
+            System.out.println("[PROXY] Adding disclaimer and sending to server...");
             smtpOut.println("Please do not take anything in this email seriously!");
             smtpOut.println(".");
         }
 
         String response = smtpIn.readLine();
+        System.out.println("[SERVER] " + response);
         clientOut.println(response);
     }
 
